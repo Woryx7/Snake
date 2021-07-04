@@ -1,11 +1,16 @@
 import pygame
 import random
+
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
-class Cabeza:
-    def __init__(self, screen ,color,x,y):
+
+# Introduce the  snake basic building node
+class Node:
+    bodylist = []
+
+    def __init__(self, screen, color, x, y):
         self.screen = screen
         self.color = color
         self.l = 30
@@ -13,37 +18,44 @@ class Cabeza:
         self.y = y
         self.dx = 0
         self.previous_inst = "0x"
+        Node.bodylist.append(self)
+
     def create(self):
-        pygame.draw.rect(self.screen, self.color, pygame.Rect(self.x, self.y, self.l, self.l))
-    def move(self,inst):
+        self.rect = pygame.Rect(self.x, self.y, self.l, self.l)
+        pygame.draw.rect(self.screen, self.color, self.rect)
+
+    def move(self, inst):
         if inst[-1] == "y":
             self.y += int(inst[:-1])
         else:
             self.x += int((inst[:-1]))
         self.current_inst = inst
-# class Food(Cabeza):
-#     def __init__(self, screen, color,x,y):
-#         super().__init__(screen,color,x,y)
-#         self.x = x
-#         self.y = y
-#         self.l = 10
 
+#Introduce the food class
 class Food:
     def __init__(self, screen):
         self.screen = screen
-        self.color = (150,230,250)
+        self.color = (150, 230, 250)
         self.l = 10
-        self.x = 250
-        self.y = 250
+
+    def pos(self):
+        self.x = random.randint(0, 900)
+        self.y = random.randint(0, 600)
+
     def create(self):
-        pygame.draw.rect(self.screen, self.color, pygame.Rect(self.x, self.y, self.l, self.l))
+        self.rect = pygame.Rect(self.x, self.y, self.l, self.l)
+        pygame.draw.rect(self.screen, self.color, self.rect)
+
+#Initialize pygame, clock and screen
 clock = pygame.time.Clock()
 pygame.init()
-screen = pygame.display.set_mode((900,600))
-food = Food(screen)
+screen = pygame.display.set_mode((900, 600))
 pygame.display.set_caption("Juego")
-bodylist = []
-bodylist.append(Cabeza(screen, GREEN,60,0))
+#Create a food object, and define its position
+food = Food(screen)
+food.pos()
+#Initialize the head of the snake and the current movement instructions
+Node(screen, GREEN, 60, 0)
 move = "0x"
 run = True
 while run == True:
@@ -59,17 +71,24 @@ while run == True:
                 move = "-30x"
             if event.key == pygame.K_RIGHT:
                 move = "30x"
-            if event.key == pygame.K_a:
-                food.y = random.randint(0,600)
-                food.x = random.randint(0,900)
+    #Set the screem canvas
     screen.fill(WHITE)
-    for g in range(len(bodylist)):
-        bodylist[g].create()
-    bodylist[0].move(move)
-    for k in range(1,len(bodylist)):
-        bodylist[k].move(bodylist[k-1].previous_inst)
-        bodylist[k-1].previous_inst = bodylist[k-1].current_inst
+    #Display the food and the snake nodes into the canvas
     food.create()
+    for g in range(len(Node.bodylist)):
+        Node.bodylist[g].create()
+    #Move the snakes head with its current instruction
+    Node.bodylist[0].move(move)
+    #Set the nodes to follow the snakes head trail
+    for k in range(1, len(Node.bodylist)):
+        Node.bodylist[k].move(Node.bodylist[k - 1].previous_inst)
+        Node.bodylist[k - 1].previous_inst = Node.bodylist[k - 1].current_inst
+    #Set the collision instructions to add a node and recalculate the food position
+    if Node.bodylist[0].rect.colliderect(food.rect):
+        Node(screen, RED, Node.bodylist[-1].x, Node.bodylist[-1].y)
+        food.pos()
+    #Flip the canvas to show to the screen
     pygame.display.flip()
+    #Introduce the refresh rate velocity
     clock.tick(10)
 pygame.quit()
